@@ -5,13 +5,14 @@ export const calculateDistances = (locations) => {
   const n = locations.length;
   const distances = Array.from({ length: n }, () => Array(n).fill(0));
   const toRadians = (degrees) => degrees * (Math.PI / 180);
+
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       if (i !== j) {
-        const dLat = toRadians(locations[j].lat - locations[i].lat);
-        const dLng = toRadians(locations[j].lng - locations[i].lng);
-        const lat1 = toRadians(locations[i].lat);
-        const lat2 = toRadians(locations[j].lat);
+        const dLat = toRadians(locations[j].latitude - locations[i].latitude);
+        const dLng = toRadians(locations[j].longitude - locations[i].longitude);
+        const lat1 = toRadians(locations[i].latitude);
+        const lat2 = toRadians(locations[j].latitude);
 
         const haversineFormula =
           Math.sin(dLat / 2) ** 2 +
@@ -30,6 +31,7 @@ export const nearestNeighborAlgorithm = (distances) => {
   const visited = Array(n).fill(false);
   const route = [];
   let currentCity = 0;
+  let totalCost = 0;
 
   route.push(currentCity);
   visited[currentCity] = true;
@@ -47,22 +49,78 @@ export const nearestNeighborAlgorithm = (distances) => {
 
     route.push(nearestCity);
     visited[nearestCity] = true;
+    totalCost += minDistance;
     currentCity = nearestCity;
   }
 
+  totalCost += distances[currentCity][route[0]];
   route.push(route[0]);
-  return route;
+
+  return { route, totalCost };
 };
 
+export const algoritmoHeldKarp = (distances) => {
+  const n = distances.length;
+  const memo = Array.from({ length: n }, () => Array(1 << n).fill(Infinity));
+  const parent = Array.from({ length: n }, () => Array(1 << n).fill(-1));
+  memo[0][1] = 0;
+
+  for (let mask = 1; mask < (1 << n); mask += 2) {
+    for (let u = 1; u < n; u++) {
+      if (mask & (1 << u)) {
+        for (let v = 0; v < n; v++) {
+          if (mask & (1 << v) && v !== u) {
+            const newCost = memo[v][mask ^ (1 << u)] + distances[v][u];
+            if (newCost < memo[u][mask]) {
+              memo[u][mask] = newCost;
+              parent[u][mask] = v;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  let minCost = Infinity;
+  let lastCity = -1;
+  const finalMask = (1 << n) - 1;
+
+  for (let u = 1; u < n; u++) {
+    const cost = memo[u][finalMask] + distances[u][0];
+    if (cost < minCost) {
+      minCost = cost;
+      lastCity = u;
+    }
+  }
+  return {totalCost: minCost, route: reconstructPath(parent, finalMask, lastCity)};
+};
+
+
+function reconstructPath(parent, finalMask, lastCity) {
+  const path = [];
+  let mask = finalMask;
+  let currentCity = lastCity;
+
+  while (currentCity !== -1) {
+    path.push(currentCity);
+    const nextCity = parent[currentCity][mask];
+    mask ^= (1 << currentCity);
+    currentCity = nextCity;
+  }
+  console.log(path);
+  path.reverse();
+  path.push(0);
+  return path;
+}
+
 export const cicloHamilton = (grafo, nodoInicio) => {
-  //V = visitado
-  //N = No visitado
+  // V = visitado
+  // N = No visitado
 
   const nodos = grafo.getListaAdyacencia();
   const camino = [];
 
   const backtrack = (nodoActual) => {
-    //console.log(nodoActual);
     camino.push(nodoActual);
     nodoActual.setEstado("V");
 
@@ -85,20 +143,17 @@ export const cicloHamilton = (grafo, nodoInicio) => {
     return false;
   };
 
-
   if (backtrack(nodoInicio)) {
     console.log("Terminopt2");
-
     return camino;
   } else {
     console.log("Terminopt1");
     return null;
   }
-
 };
 
-export const comunityHamiltonSolution = (graph, path = []) => {
 
+export const comunityHamiltonSolution = (graph, path = []) => {
   if (path.length === Object.keys(graph).length) {
     if (graph[path[path.length - 1]].includes(path[0])) {
       return path;
@@ -118,8 +173,8 @@ export const comunityHamiltonSolution = (graph, path = []) => {
   return false;
 };
 
-export const studentKnpasack = (valores, pesos, pesoMax) => {
-  const tam = pesos.length;
+export const studentKnapsack = (items, pesoMax) => {
+  const tam = items.length;
   const resultados = new Map();
   const camino = new Map();
 
@@ -133,7 +188,7 @@ export const studentKnpasack = (valores, pesos, pesoMax) => {
       return resultados.get(key);
     }
 
-    if (pesos[i] > sobras) {
+    if (items[i].weight > sobras) {
       const result = knapsack(i - 1, sobras);
       resultados.set(key, result);
       camino.set(key, false);
@@ -141,35 +196,37 @@ export const studentKnpasack = (valores, pesos, pesoMax) => {
     }
 
     const sin = knapsack(i - 1, sobras);
-    const con = knapsack(i - 1, sobras - pesos[i]);
-    con.value += valores[i];
-    con.items = [...con.items, i];
+    const con = knapsack(i - 1, sobras - items[i].weight);
+    con.value += items[i].value;
+    con.items = [...con.items, items[i].key];
 
     const bestOption = con.value > sin.value ? con : sin;
 
     resultados.set(key, bestOption);
     camino.set(key, bestOption === con);
     return bestOption;
-  }
+  };
 
   return knapsack(tam - 1, pesoMax);
-}
+};
 
-export const comunityKnapasack = (W, val, wt) => {
-  let dp = new Array(W + 1).fill(0);
-  let selected = new Array(W + 1).fill().map(() => []);
+export const comunityKnapasack = (items, pesoMax) => {
+  let dp = new Array(pesoMax + 1).fill(0);
+  let selected = new Array(pesoMax + 1).fill().map(() => []);
 
-  for (let i = 1; i <= wt.length; i++) {
-    for (let j = W; j >= wt[i - 1]; j--) {
-      if (dp[j] < dp[j - wt[i - 1]] + val[i - 1]) {
-        dp[j] = dp[j - wt[i - 1]] + val[i - 1];
-        selected[j] = [...selected[j - wt[i - 1]], i - 1];
+  for (let i = 1; i <= items.length; i++) {
+    for (let j = pesoMax; j >= items[i - 1].weight; j--) {
+      if (dp[j] < dp[j - items[i - 1].weight] + items[i - 1].value) {
+        dp[j] = dp[j - items[i - 1].weight] + items[i - 1].value;
+        selected[j] = [...selected[j - items[i - 1].weight], items[i - 1].key];
       }
     }
   }
 
-  let maxValue = dp[W];
-  let selectedItems = selected[W].map(index => ({ value: val[index], weight: wt[index] }));
+  let maxValue = dp[pesoMax];
+  items = selected[pesoMax].map(key => {
+    return key;
+  });
 
-  return { maxValue, selectedItems };
-}
+  return { value:maxValue, items };
+};

@@ -1,20 +1,19 @@
-import { studentKnpasack, comunityKnapasack} from "../utils.js";
+import { studentKnapsack, comunityKnapasack} from "../utils.js";
 
 
 export const studentKnapsackController = (req, res) => {
     try {
-        const { valores, pesos, pesoMax } = req.body;
-
-        if (valores === undefined || pesos === undefined || pesoMax === undefined) {
-            return res.status(400).json({ mensaje: "Faltan valores, pesos o pesoMax en la solicitud" });
+        const { items, pesoMax } = req.body;
+        if (items.length === 0  || pesoMax <= 0) {
+           return res.status(400).json({ mensaje: "Faltan valores, pesos o pesoMax en la solicitud" });
         }
         const start = performance.now();
-        const resultadomini = studentKnpasack(valores, pesos, pesoMax);
+        const resultadomini = studentKnapsack(items, pesoMax);
         const end = performance.now();
         const time = end - start;
         const resultado = {
             res: resultadomini,
-            tiempo: time
+            time: time
         }
 
         if (resultado) {
@@ -30,23 +29,18 @@ export const studentKnapsackController = (req, res) => {
 
 export const comunityKnapsackController = (req, res) => {
     try {
-        const { valores, pesos, pesoMax } = req.body;
-
-        
-
-        if (valores === undefined || pesos === undefined || pesoMax === undefined) {
-            return res.status(400).json({ mensaje: "Faltan valores, pesos o pesoMax en la solicitud" });
+        const { items, pesoMax } = req.body;
+        if (items.length === 0  || pesoMax <= 0) {
+           return res.status(400).json({ mensaje: "Faltan valores, pesos o pesoMax en la solicitud" });
         }
-
         const start = performance.now();
-        const resultadomini = comunityKnapasack(pesoMax, valores, pesos);
+        const resultadomini = comunityKnapasack(items, pesoMax);
         const end = performance.now();
         const time = end - start;
         const resultado = {
             res: resultadomini,
-            tiempo: time
+            time: time
         }
-
 
         if (resultado) {
             res.json({ success: true, resultado:  resultado});
