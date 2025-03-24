@@ -195,10 +195,10 @@ export const studentKnapsack = (items, pesoMax) => {
       return result;
     }
 
-    const sin = knapsack(i - 1, sobras);
-    const con = knapsack(i - 1, sobras - items[i].weight);
+    const sin = { ...knapsack(i - 1, sobras) };
+    const con = { ...knapsack(i - 1, sobras - items[i].weight) }; 
     con.value += items[i].value;
-    con.items = [...con.items, items[i].key];
+    con.items = [...con.items, items[i].key]; 
 
     const bestOption = con.value > sin.value ? con : sin;
 
@@ -209,6 +209,7 @@ export const studentKnapsack = (items, pesoMax) => {
 
   return knapsack(tam - 1, pesoMax);
 };
+
 
 export const comunityKnapasack = (items, pesoMax) => {
   let dp = new Array(pesoMax + 1).fill(0);
